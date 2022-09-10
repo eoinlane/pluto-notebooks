@@ -7,6 +7,9 @@ using InteractiveUtils
 # ╔═╡ 08a9d538-1eba-11ed-1ac4-c1b15c5bb280
 using DataFrames
 
+# ╔═╡ a28594c7-c134-4548-9ac1-1049bbe14f4b
+using CSV
+
 # ╔═╡ 903341d9-ea5e-4b9a-ac7e-f0b1a7c3b98b
 using PyPlot
 
@@ -45,6 +48,7 @@ See here:
 - https://www.wikiwand.com/en/Proofs_of_Fermat%27s_theorem_on_sums_of_two_squares
 - https://www.had2know.org/academics/gaussian-prime-factorization-calculator.html
 - https://stackoverflow.com/questions/2269810/whats-a-nice-method-to-factor-gaussian-integers
+- https://en.wikipedia.org/wiki/Table_of_Gaussian_integer_factorizations
 
 """
 
@@ -66,11 +70,10 @@ Let's test our function
 """
 
 # ╔═╡ 72460280-bbfa-492d-8270-e44293266e09
-df_pi = DataFrame(sqrt_radius= 125:125) #73 is the magic number
+df_pi = DataFrame(sqrt_radius= 1:1000) #73 is the magic number
 
 # ╔═╡ bb47b3f0-b4d7-43d8-945f-ee94e9def8f6
-
-function gcd(z1::Complex{T}, z2::Complex{V}) where {T<:Integer, V<:Integer}
+function gcd(z1::Complex{T}, z2::Complex{V}) where {T<:Integer,V<:Integer}
     R = promote_type(T, V)
     a = Complex{R}(z1)
     b = Complex{R}(z2)
@@ -82,13 +85,13 @@ function gcd(z1::Complex{T}, z2::Complex{V}) where {T<:Integer, V<:Integer}
         # TODO: Create div(::Complex{<:Integer}, ::Complex{<:Integer})
         b̅ = conj(b)
         # TODO: Handle overflow when calculating a*b̅
-        t = a*b̅
+        t = a * b̅
         # TODO: Create checked_abs2(::Complex{<:Integer})
         # TODO: Handle overflow when calculating the norm of complex numbers
         abs2_b = abs2(b)
         abs2_b < 0 && __throw_gcd_overflow(z1, z2)
         r = a - b * complex(div(real(t), abs2_b, RoundNearest),
-                            div(imag(t), abs2_b, RoundNearest))
+            div(imag(t), abs2_b, RoundNearest))
         a = b
         b = r
     end
@@ -97,11 +100,11 @@ function gcd(z1::Complex{T}, z2::Complex{V}) where {T<:Integer, V<:Integer}
         complex(abs(ai), zero(ar))
     elseif ai == 0
         complex(abs(ar), zero(ai))
-    elseif ar>0 && ai>=0   # gcd is already in first quadrant
+    elseif ar > 0 && ai >= 0   # gcd is already in first quadrant
         a
-    elseif ar<0 && ai>0     # In second quadrant
+    elseif ar < 0 && ai > 0     # In second quadrant
         complex(ai, -ar)
-    elseif ar<0 && ai<0     # In third quadrant
+    elseif ar < 0 && ai < 0     # In third quadrant
         -a
     else                               # In fourth quadrant
         complex(-ai, ar)
@@ -114,37 +117,43 @@ end
 # ╔═╡ e4af41d5-754a-466f-a26c-cb2a6c4e160c
 dict = Dict()
 
+# ╔═╡ 72bcf653-3ec8-43ad-90a1-e08f7b063b33
+int(x) = floor(Int, x)
+
 # ╔═╡ af516c3f-6fcf-4db7-a89f-30b1e813863c
 function gprime(arr)
-	x = Complex[]
-	for p in arr
-		if p == 2
-			push!(x,1 + 1im)
-            push!(x,1 - 1im)
-		elseif mod(p,4) == 3 # p = 3 mod 4, q = p.
-			push!(x,p)
-		elseif mod(p, 4) == 1 # p = 1 mod 4
+    x = Complex[]
+    for p in arr
+        if p == 2
+            push!(x, 1 + 1im)
+            push!(x, 1 - 1im)
+        elseif mod(p, 4) == 3 # p = 3 mod 4, q = p.
+            push!(x, p)
+        elseif mod(p, 4) == 1 # p = 1 mod 4
             if haskey(dict, p)
-                push!(x,dict[p])
-                push!(x,conj(dict[p]))
-                break
-            end
-			for k in 2:(p-1)
-				if mod(mod(k^((p-1)/2),p),p) == mod(-1,p)
-                    real = BigInt(k^((p-1)/4))
-                    factor = gcd(Complex(p), real +1im)
-                    if !in(factor, x)
-                        factor_complex_cong = conj(factor)
-					    push!(x,factor)
-                        push!(x,factor_complex_cong)
-                        dict[p] = factor
-                        break
+                push!(x, dict[p])
+                push!(x, conj(dict[p]))
+            else
+                for k in 2:(p-1)
+                   # if mod(mod(BigInt(k)^((p - 1) / 2), p), p) == mod(-1, p)
+					y = powermod(k,int((p-1)/2),p)
+					if mod(y, p) == mod(-1, p)
+                        #real = BigInt(k)^((p - 1) / 4)
+						real = powermod(k,int((p - 1) / 4),p)
+                        factor = gcd(Complex(p), (real) + 1im)
+                        if !in(factor, x)
+                            factor_complex_cong = conj(factor)
+                            push!(x, factor)
+                            push!(x, factor_complex_cong)
+                            dict[p] = factor
+                            break
+                        end
                     end
-				end
-			end
-		end
-	end
-	x
+                end
+            end
+        end
+    end
+    x
 end
 
 # ╔═╡ 83fee348-2ee5-4612-b909-f73a800b9cb6
@@ -155,6 +164,22 @@ function mod_4(x)
 		3
 	end
 end
+
+# ╔═╡ 2de72be6-3ebd-4282-8ab0-d51bbe727aea
+# https://oodlescoop.com/tutorials/julia/programs/julia-program-to-check-if-a-number-is-prime-number-or-not-;jsessionid=2F142D01C14896A498C338A5BAE587FF
+function prime(num)    
+    isPrime = true
+        for i in 2:convert(Int64, round(num/2, digits = 0))
+            if num % i == 0
+                isPrime = false
+                break
+            end
+        end
+    return isPrime
+end
+
+# ╔═╡ 9d7518a1-95a5-42fc-b268-87b100c3e96d
+df_pi.isPrime = prime.(df_pi.sqrt_radius)
 
 # ╔═╡ c056d31e-6351-4d76-b484-fb8013c20b67
 df_pi.mod4 = mod_4.(df_pi.sqrt_radius)
@@ -171,7 +196,7 @@ function cartesian(array)
 	x = Complex[]
 	array_size = size(array)
 	len = length(array)
-	@show(len)
+	#@show(len)
 	if len == 1
 		push!(x, array[1])
 	elseif(isodd(len))
@@ -221,6 +246,15 @@ df_pi.size = size.(df_pi.img_ops)
 
 # ╔═╡ af40960b-1d79-42ed-a69c-2f24465cfc02
 df_pi
+
+# ╔═╡ a9d4a058-7ab0-42eb-b879-3787dcedf1c0
+# https://discourse.julialang.org/t/how-to-convert-all-nothings-in-dataframe-to-missing/54004/10
+df_pi.mod4 = replace(df_pi.mod4, nothing => missing)
+
+# ╔═╡ c193d0f7-44d5-44ab-9a0e-1271e23b06f6
+
+CSV.write("prime_pi.csv", df_pi)
+
 
 # ╔═╡ 3858bddb-34c8-476a-9d27-b2997b54271b
 twenty_five = [-3+4im,
@@ -285,10 +319,12 @@ end
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 PyPlot = "d330b81b-6aea-500a-939a-2ce795aea3ee"
 
 [compat]
+CSV = "~0.10.4"
 DataFrames = "~1.3.4"
 PyPlot = "~2.11.0"
 """
@@ -308,6 +344,18 @@ uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
 
 [[deps.Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
+
+[[deps.CSV]]
+deps = ["CodecZlib", "Dates", "FilePathsBase", "InlineStrings", "Mmap", "Parsers", "PooledArrays", "SentinelArrays", "Tables", "Unicode", "WeakRefStrings"]
+git-tree-sha1 = "873fb188a4b9d76549b81465b1f75c82aaf59238"
+uuid = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+version = "0.10.4"
+
+[[deps.CodecZlib]]
+deps = ["TranscodingStreams", "Zlib_jll"]
+git-tree-sha1 = "ded953804d019afa9a3f98981d99b33e3db7b6da"
+uuid = "944b1d66-785c-5afd-91f1-9de20f533193"
+version = "0.7.0"
 
 [[deps.ColorTypes]]
 deps = ["FixedPointNumbers", "Random"]
@@ -380,6 +428,12 @@ uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 deps = ["ArgTools", "LibCURL", "NetworkOptions"]
 uuid = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
 
+[[deps.FilePathsBase]]
+deps = ["Compat", "Dates", "Mmap", "Printf", "Test", "UUIDs"]
+git-tree-sha1 = "316daa94fad0b7a008ebd573e002efd6609d85ac"
+uuid = "48062228-2e41-5def-b9a4-89aafe57970f"
+version = "0.9.19"
+
 [[deps.FixedPointNumbers]]
 deps = ["Statistics"]
 git-tree-sha1 = "335bfdceacc84c5cdf16aadc768aa5ddfc5383cc"
@@ -395,6 +449,12 @@ version = "0.4.2"
 [[deps.Future]]
 deps = ["Random"]
 uuid = "9fa8497b-333b-5362-9e8d-4d0656e87820"
+
+[[deps.InlineStrings]]
+deps = ["Parsers"]
+git-tree-sha1 = "d19f9edd8c34760dca2de2b503f969d8700ed288"
+uuid = "842dd82b-1e85-43dc-bf29-5d0ee9dffc48"
+version = "1.1.4"
 
 [[deps.InteractiveUtils]]
 deps = ["Markdown"]
@@ -539,6 +599,12 @@ version = "1.2.2"
 [[deps.SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 
+[[deps.SentinelArrays]]
+deps = ["Dates", "Random"]
+git-tree-sha1 = "db8481cf5d6278a121184809e9eb1628943c7704"
+uuid = "91c51154-3ec4-41a3-a24f-3f23e20d615c"
+version = "1.3.13"
+
 [[deps.Serialization]]
 uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
 
@@ -587,6 +653,12 @@ uuid = "a4e569a6-e804-4fa4-b0f3-eef7a1d5b13e"
 deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
+[[deps.TranscodingStreams]]
+deps = ["Random", "Test"]
+git-tree-sha1 = "8a75929dcd3c38611db2f8d08546decb514fcadf"
+uuid = "3bb67fe8-82b1-5028-8e26-92a6c54297fa"
+version = "0.9.9"
+
 [[deps.UUIDs]]
 deps = ["Random", "SHA"]
 uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
@@ -598,6 +670,12 @@ uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
 git-tree-sha1 = "58d6e80b4ee071f5efd07fda82cb9fbe17200868"
 uuid = "81def892-9a0e-5fdd-b105-ffc91e053289"
 version = "1.3.0"
+
+[[deps.WeakRefStrings]]
+deps = ["DataAPI", "InlineStrings", "Parsers"]
+git-tree-sha1 = "b1be2855ed9ed8eac54e5caff2afcdb442d52c23"
+uuid = "ea10d353-3f73-51f8-a26c-33c1cb351aa5"
+version = "1.4.2"
 
 [[deps.Zlib_jll]]
 deps = ["Libdl"]
@@ -626,8 +704,11 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╠═bb47b3f0-b4d7-43d8-945f-ee94e9def8f6
 # ╠═8a1b5946-5120-437b-b79f-5d006d20dd57
 # ╠═e4af41d5-754a-466f-a26c-cb2a6c4e160c
+# ╠═72bcf653-3ec8-43ad-90a1-e08f7b063b33
 # ╠═af516c3f-6fcf-4db7-a89f-30b1e813863c
 # ╠═83fee348-2ee5-4612-b909-f73a800b9cb6
+# ╠═2de72be6-3ebd-4282-8ab0-d51bbe727aea
+# ╠═9d7518a1-95a5-42fc-b268-87b100c3e96d
 # ╠═c056d31e-6351-4d76-b484-fb8013c20b67
 # ╠═2c8e6f69-f0b9-43a1-b18e-94a4e5de993d
 # ╠═b899d763-5636-4142-b93b-30b578144d01
@@ -640,6 +721,9 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╠═09f4b07a-877c-4357-bbe1-4d46606e8dec
 # ╠═e3cbf4ec-8e7b-44ce-887f-b978524c5cbf
 # ╠═af40960b-1d79-42ed-a69c-2f24465cfc02
+# ╠═a9d4a058-7ab0-42eb-b879-3787dcedf1c0
+# ╠═a28594c7-c134-4548-9ac1-1049bbe14f4b
+# ╠═c193d0f7-44d5-44ab-9a0e-1271e23b06f6
 # ╠═3858bddb-34c8-476a-9d27-b2997b54271b
 # ╠═1e010dfd-e31a-426d-99bc-09cb5f43ed6c
 # ╠═903341d9-ea5e-4b9a-ac7e-f0b1a7c3b98b
