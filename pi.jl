@@ -1,35 +1,20 @@
 ### A Pluto.jl notebook ###
-# v0.19.11
+# v0.19.4
 
 using Markdown
 using InteractiveUtils
 
-# ╔═╡ 9193e94c-46df-4534-89f0-6a5699c2725a
-begin
-	using PlutoUI, PlutoTeachingTools
-	
-	# PlutoTeachingTools looks up language based on ENV["LANG"]
-	# Uncomment a line below to override default language
-	#set_language!(PlutoTeachingTools.EnglishUS())      # default
-	#set_language!(PlutoTeachingTools.GermanGermany())  
-end
-
 # ╔═╡ 08a9d538-1eba-11ed-1ac4-c1b15c5bb280
 using DataFrames
+
+# ╔═╡ af189800-ee8e-4042-9a76-89a60e8a6b21
+using StatsBase
 
 # ╔═╡ a28594c7-c134-4548-9ac1-1049bbe14f4b
 using CSV
 
 # ╔═╡ 903341d9-ea5e-4b9a-ac7e-f0b1a7c3b98b
 using PyPlot
-
-# ╔═╡ 54ee7295-27c4-4fcc-8c4f-27407b0c9ddc
-TableOfContents()   # from PlutoUI
-
-# ╔═╡ 4d39b023-b2e7-4569-9dde-9d1aab571c21
-md"""
-## Introduction
-"""
 
 # ╔═╡ ceb4fa2c-3981-466d-b0f8-0468bb264c68
 md"""
@@ -52,10 +37,10 @@ md"""
 In additive number theory, Fermat's theorem on sums of two squares states that an odd prime p can be expressed as
 
 
-${\displaystyle p=x^{2}+y^{2},}$https://rosettacode.org/wiki/Modular_exponentiation#Julia
+${\displaystyle p=x^{2}+y^{2},}$
 with x and y integers, if and only if
 
-$p \equiv 1 \pmod{4}.$https://rosettacode.org/wiki/Modular_exponentiation#Julia
+$p \equiv 1 \pmod{4}.$
 The prime numbers for which this is true are called *Pythagorean primes*. For example, the primes $5, 13, 17, 29, 37$ and $41$ are all congruent to 1 modulo 4, and they can be expressed as sums of two squares in the following ways:
 
 $5 = 1^2 + 2^2, \quad 13 = 2^2 + 3^2, \quad 17 = 1^2 + 4^2, \quad 29 = 2^2 + 5^2, \quad 37 = 1^2 + 6^2, \quad 41 = 4^2 + 5^2.$
@@ -67,12 +52,8 @@ See here:
 - https://www.had2know.org/academics/gaussian-prime-factorization-calculator.html
 - https://stackoverflow.com/questions/2269810/whats-a-nice-method-to-factor-gaussian-integers
 - https://en.wikipedia.org/wiki/Table_of_Gaussian_integer_factorizations
-- [Modular exponentiation](https://rosettacode.org/wiki/Modular_exponentiation#Julia)
 
 """
-
-# ╔═╡ 5ec4c34e-3c37-4e33-ad32-f920f00341cf
-protip(md"- [Fermat's theorem on sums of two squares](https://www.wikiwand.com/en/ProofsofFermat%27stheoremonsumsoftwosquares)","Invitation to learn more")
 
 # ╔═╡ ea560410-5c83-4fe2-afd5-03d09af0685d
 function primeFactors(number, list = Int[] )
@@ -92,13 +73,7 @@ Let's test our function
 """
 
 # ╔═╡ 72460280-bbfa-492d-8270-e44293266e09
-df_pi = DataFrame(sqrt_radius= 1:1000) 
-
-# ╔═╡ 2792710d-b98b-462f-bf03-120d75b7eee6
-aside(tip(md"Extra information to consider.") )
-
-# ╔═╡ 3c888d25-fc21-4c4f-a2bf-341ed6aaf787
-set_aside_width(400)
+df_pi = DataFrame(sqrt_radius= 1:40500) #73 is the magic number
 
 # ╔═╡ bb47b3f0-b4d7-43d8-945f-ee94e9def8f6
 function gcd(z1::Complex{T}, z2::Complex{V}) where {T<:Integer,V<:Integer}
@@ -190,6 +165,37 @@ function mod_4(x)
 	end
 end
 
+# ╔═╡ 763c51c1-a1a8-4262-8d40-14799603279a
+function Χ(n)
+		if mod_4(n) == 1
+			1
+		elseif mod_4(n) == 3
+			-1
+		else iseven(n)
+			0
+		end
+end
+
+# ╔═╡ 7bc5e477-37b0-435e-9224-152bc562ff04
+function computeChi(array)
+	D = Dict
+	x = []
+	collection = []
+	prod = 1
+		#@show(array)
+		D = countmap(array)
+		for (key, val) in D
+			s = 0
+			for i in 0:val
+				s += Χ(key^i)
+				#push!(collection,s)
+			end
+			prod = prod * s
+		end
+		#print(prod)
+	4*prod
+end
+
 # ╔═╡ 2de72be6-3ebd-4282-8ab0-d51bbe727aea
 # https://oodlescoop.com/tutorials/julia/programs/julia-program-to-check-if-a-number-is-prime-number-or-not-;jsessionid=2F142D01C14896A498C338A5BAE587FF
 function prime(num)    
@@ -211,6 +217,12 @@ df_pi.mod4 = mod_4.(df_pi.sqrt_radius)
 
 # ╔═╡ 2c8e6f69-f0b9-43a1-b18e-94a4e5de993d
 df_pi.factors = primeFactors.(df_pi.sqrt_radius)
+
+# ╔═╡ c3af66e7-7e7c-4af9-90cc-8ba7382b2791
+
+
+# ╔═╡ bcd7bbc4-90c8-492c-903d-b9559d8a2eb5
+df_pi
 
 # ╔═╡ b899d763-5636-4142-b93b-30b578144d01
 df_pi.cc = gprime.(df_pi.factors)
@@ -268,6 +280,9 @@ df_pi.img_ops = img_ops.(df_pi.cartesian)
 
 # ╔═╡ e3cbf4ec-8e7b-44ce-887f-b978524c5cbf
 df_pi.size = size.(df_pi.img_ops)
+
+# ╔═╡ 10ed3abf-ae21-453c-ae7b-c27d0f106dae
+df_pi.chi = computeChi.(df_pi.factors)
 
 # ╔═╡ af40960b-1d79-42ed-a69c-2f24465cfc02
 df_pi
@@ -346,35 +361,25 @@ PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
-PlutoTeachingTools = "661c6b06-c737-4d37-b85c-46df65de6f69"
-PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 PyPlot = "d330b81b-6aea-500a-939a-2ce795aea3ee"
+StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [compat]
 CSV = "~0.10.4"
 DataFrames = "~1.3.4"
-PlutoTeachingTools = "~0.2.3"
-PlutoUI = "~0.7.40"
 PyPlot = "~2.11.0"
+StatsBase = "~0.33.21"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.8.0"
+julia_version = "1.7.2"
 manifest_format = "2.0"
-project_hash = "dedbf61e0507577c6a41f1761824a61c6547c88d"
-
-[[deps.AbstractPlutoDingetjes]]
-deps = ["Pkg"]
-git-tree-sha1 = "8eaf9f1b4921132a4cff3f36a1d9ba923b14a481"
-uuid = "6e696c72-6542-2067-7265-42206c756150"
-version = "1.1.4"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
-version = "1.1.1"
 
 [[deps.Artifacts]]
 uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
@@ -388,11 +393,17 @@ git-tree-sha1 = "873fb188a4b9d76549b81465b1f75c82aaf59238"
 uuid = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 version = "0.10.4"
 
-[[deps.CodeTracking]]
-deps = ["InteractiveUtils", "UUIDs"]
-git-tree-sha1 = "1833bda4a027f4b2a1c984baddcf755d77266818"
-uuid = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
-version = "1.1.0"
+[[deps.ChainRulesCore]]
+deps = ["Compat", "LinearAlgebra", "SparseArrays"]
+git-tree-sha1 = "dc4405cee4b2fe9e1108caec2d760b7ea758eca2"
+uuid = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+version = "1.15.5"
+
+[[deps.ChangesOfVariables]]
+deps = ["ChainRulesCore", "LinearAlgebra", "Test"]
+git-tree-sha1 = "38f7a08f19d8810338d4f5085211c7dfa5d5bdd8"
+uuid = "9e997f8a-9a97-42d5-a9f1-ce6bfc15e2c0"
+version = "0.1.4"
 
 [[deps.CodecZlib]]
 deps = ["TranscodingStreams", "Zlib_jll"]
@@ -421,7 +432,6 @@ version = "3.46.0"
 [[deps.CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-version = "0.5.2+0"
 
 [[deps.Conda]]
 deps = ["Downloads", "JSON", "VersionParsing"]
@@ -468,19 +478,21 @@ uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 deps = ["Random", "Serialization", "Sockets"]
 uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
+[[deps.DocStringExtensions]]
+deps = ["LibGit2"]
+git-tree-sha1 = "5158c2b41018c5f7eb1470d558127ac274eca0c9"
+uuid = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
+version = "0.9.1"
+
 [[deps.Downloads]]
-deps = ["ArgTools", "FileWatching", "LibCURL", "NetworkOptions"]
+deps = ["ArgTools", "LibCURL", "NetworkOptions"]
 uuid = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
-version = "1.6.0"
 
 [[deps.FilePathsBase]]
 deps = ["Compat", "Dates", "Mmap", "Printf", "Test", "UUIDs"]
 git-tree-sha1 = "316daa94fad0b7a008ebd573e002efd6609d85ac"
 uuid = "48062228-2e41-5def-b9a4-89aafe57970f"
 version = "0.9.19"
-
-[[deps.FileWatching]]
-uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 
 [[deps.FixedPointNumbers]]
 deps = ["Statistics"]
@@ -498,24 +510,6 @@ version = "0.4.2"
 deps = ["Random"]
 uuid = "9fa8497b-333b-5362-9e8d-4d0656e87820"
 
-[[deps.Hyperscript]]
-deps = ["Test"]
-git-tree-sha1 = "8d511d5b81240fc8e6802386302675bdf47737b9"
-uuid = "47d2ed2b-36de-50cf-bf87-49c2cf4b8b91"
-version = "0.0.4"
-
-[[deps.HypertextLiteral]]
-deps = ["Tricks"]
-git-tree-sha1 = "c47c5fa4c5308f27ccaac35504858d8914e102f9"
-uuid = "ac1192a8-f4b3-4bfe-ba22-af5b92cd3ab2"
-version = "0.9.4"
-
-[[deps.IOCapture]]
-deps = ["Logging", "Random"]
-git-tree-sha1 = "f7be53659ab06ddc986428d3a9dcc95f6fa6705a"
-uuid = "b5f81e59-6552-4d32-b1f0-c071b021bf89"
-version = "0.2.2"
-
 [[deps.InlineStrings]]
 deps = ["Parsers"]
 git-tree-sha1 = "d19f9edd8c34760dca2de2b503f969d8700ed288"
@@ -526,10 +520,21 @@ version = "1.1.4"
 deps = ["Markdown"]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 
+[[deps.InverseFunctions]]
+deps = ["Test"]
+git-tree-sha1 = "b3364212fb5d870f724876ffcd34dd8ec6d98918"
+uuid = "3587e190-3f89-42d0-90ee-14403ec27112"
+version = "0.1.7"
+
 [[deps.InvertedIndices]]
 git-tree-sha1 = "bee5f1ef5bf65df56bdd2e40447590b272a5471f"
 uuid = "41ab1584-1d38-5bbf-9106-f11c6c58b48f"
 version = "1.1.0"
+
+[[deps.IrrationalConstants]]
+git-tree-sha1 = "7fd44fd4ff43fc60815f8e764c0f352b83c49151"
+uuid = "92d709cd-6900-40b7-9082-c6be49f344b6"
+version = "0.1.1"
 
 [[deps.IteratorInterfaceExtensions]]
 git-tree-sha1 = "a3f24677c21f5bbe9d2a714f95dcd58337fb2856"
@@ -542,32 +547,18 @@ git-tree-sha1 = "3c837543ddb02250ef42f4738347454f95079d4e"
 uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 version = "0.21.3"
 
-[[deps.JuliaInterpreter]]
-deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
-git-tree-sha1 = "0f960b1404abb0b244c1ece579a0ec78d056a5d1"
-uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
-version = "0.9.15"
-
 [[deps.LaTeXStrings]]
 git-tree-sha1 = "f2355693d6778a178ade15952b7ac47a4ff97996"
 uuid = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 version = "1.3.0"
 
-[[deps.Latexify]]
-deps = ["Formatting", "InteractiveUtils", "LaTeXStrings", "MacroTools", "Markdown", "Printf", "Requires"]
-git-tree-sha1 = "1a43be956d433b5d0321197150c2f94e16c0aaa0"
-uuid = "23fbe1c1-3f47-55db-b15f-69d7ec21a316"
-version = "0.15.16"
-
 [[deps.LibCURL]]
 deps = ["LibCURL_jll", "MozillaCACerts_jll"]
 uuid = "b27032c2-a3e7-50c8-80cd-2d36dbcbfd21"
-version = "0.6.3"
 
 [[deps.LibCURL_jll]]
 deps = ["Artifacts", "LibSSH2_jll", "Libdl", "MbedTLS_jll", "Zlib_jll", "nghttp2_jll"]
 uuid = "deac9b47-8bc7-5906-a0fe-35ac56dc84c0"
-version = "7.84.0+0"
 
 [[deps.LibGit2]]
 deps = ["Base64", "NetworkOptions", "Printf", "SHA"]
@@ -576,7 +567,6 @@ uuid = "76f85450-5226-5b5a-8eaa-529ad045b433"
 [[deps.LibSSH2_jll]]
 deps = ["Artifacts", "Libdl", "MbedTLS_jll"]
 uuid = "29816b5a-b9ab-546f-933c-edad1886dfa8"
-version = "1.10.2+0"
 
 [[deps.Libdl]]
 uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
@@ -585,14 +575,14 @@ uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
 deps = ["Libdl", "libblastrampoline_jll"]
 uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
+[[deps.LogExpFunctions]]
+deps = ["ChainRulesCore", "ChangesOfVariables", "DocStringExtensions", "InverseFunctions", "IrrationalConstants", "LinearAlgebra"]
+git-tree-sha1 = "94d9c52ca447e23eac0c0f074effbcd38830deb5"
+uuid = "2ab3a3ac-af41-5b50-aa03-7779005ae688"
+version = "0.3.18"
+
 [[deps.Logging]]
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
-
-[[deps.LoweredCodeUtils]]
-deps = ["JuliaInterpreter"]
-git-tree-sha1 = "dedbebe234e06e1ddad435f5c6f4b85cd8ce55f7"
-uuid = "6f1432cf-f94c-5a45-995e-cdbf5db27b0b"
-version = "2.2.2"
 
 [[deps.MacroTools]]
 deps = ["Markdown", "Random"]
@@ -607,7 +597,6 @@ uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
 [[deps.MbedTLS_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "c8ffd9c3-330d-5841-b78e-0817d7145fa1"
-version = "2.28.0+0"
 
 [[deps.Missings]]
 deps = ["DataAPI"]
@@ -620,16 +609,13 @@ uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 
 [[deps.MozillaCACerts_jll]]
 uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
-version = "2022.2.1"
 
 [[deps.NetworkOptions]]
 uuid = "ca575930-c2e3-43a9-ace4-1e988b2c1908"
-version = "1.2.0"
 
 [[deps.OpenBLAS_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "Libdl"]
 uuid = "4536629a-c528-5b80-bd46-f80d51c5b363"
-version = "0.3.20+0"
 
 [[deps.OrderedCollections]]
 git-tree-sha1 = "85f8e6578bf1f9ee0d11e7bb1b1456435479d47c"
@@ -645,31 +631,6 @@ version = "2.4.0"
 [[deps.Pkg]]
 deps = ["Artifacts", "Dates", "Downloads", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "Serialization", "TOML", "Tar", "UUIDs", "p7zip_jll"]
 uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
-version = "1.8.0"
-
-[[deps.PlutoHooks]]
-deps = ["InteractiveUtils", "Markdown", "UUIDs"]
-git-tree-sha1 = "072cdf20c9b0507fdd977d7d246d90030609674b"
-uuid = "0ff47ea0-7a50-410d-8455-4348d5de0774"
-version = "0.0.5"
-
-[[deps.PlutoLinks]]
-deps = ["FileWatching", "InteractiveUtils", "Markdown", "PlutoHooks", "Revise", "UUIDs"]
-git-tree-sha1 = "0e8bcc235ec8367a8e9648d48325ff00e4b0a545"
-uuid = "0ff47ea0-7a50-410d-8455-4348d5de0420"
-version = "0.1.5"
-
-[[deps.PlutoTeachingTools]]
-deps = ["Downloads", "HypertextLiteral", "LaTeXStrings", "Latexify", "Markdown", "PlutoLinks", "PlutoUI", "Random"]
-git-tree-sha1 = "d8be3432505c2febcea02f44e5f4396fae017503"
-uuid = "661c6b06-c737-4d37-b85c-46df65de6f69"
-version = "0.2.3"
-
-[[deps.PlutoUI]]
-deps = ["AbstractPlutoDingetjes", "Base64", "ColorTypes", "Dates", "Hyperscript", "HypertextLiteral", "IOCapture", "InteractiveUtils", "JSON", "Logging", "Markdown", "Random", "Reexport", "UUIDs"]
-git-tree-sha1 = "a602d7b0babfca89005da04d89223b867b55319f"
-uuid = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
-version = "0.7.40"
 
 [[deps.PooledArrays]]
 deps = ["DataAPI", "Future"]
@@ -712,21 +673,8 @@ git-tree-sha1 = "45e428421666073eab6f2da5c9d310d99bb12f9b"
 uuid = "189a3867-3050-52da-a836-e630ba90ab69"
 version = "1.2.2"
 
-[[deps.Requires]]
-deps = ["UUIDs"]
-git-tree-sha1 = "838a3a4188e2ded87a4f9f184b4b0d78a1e91cb7"
-uuid = "ae029012-a4dd-5104-9daa-d747884805df"
-version = "1.3.0"
-
-[[deps.Revise]]
-deps = ["CodeTracking", "Distributed", "FileWatching", "JuliaInterpreter", "LibGit2", "LoweredCodeUtils", "OrderedCollections", "Pkg", "REPL", "Requires", "UUIDs", "Unicode"]
-git-tree-sha1 = "dad726963ecea2d8a81e26286f625aee09a91b7c"
-uuid = "295af30f-e4ad-537b-8983-00126c2a3abe"
-version = "3.4.0"
-
 [[deps.SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
-version = "0.7.0"
 
 [[deps.SentinelArrays]]
 deps = ["Dates", "Random"]
@@ -758,10 +706,21 @@ uuid = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 deps = ["LinearAlgebra", "SparseArrays"]
 uuid = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
+[[deps.StatsAPI]]
+deps = ["LinearAlgebra"]
+git-tree-sha1 = "f9af7f195fb13589dd2e2d57fdb401717d2eb1f6"
+uuid = "82ae8749-77ed-4fe6-ae5f-f523153014b0"
+version = "1.5.0"
+
+[[deps.StatsBase]]
+deps = ["DataAPI", "DataStructures", "LinearAlgebra", "LogExpFunctions", "Missings", "Printf", "Random", "SortingAlgorithms", "SparseArrays", "Statistics", "StatsAPI"]
+git-tree-sha1 = "d1bf48bfcc554a3761a133fe3a9bb01488e06916"
+uuid = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
+version = "0.33.21"
+
 [[deps.TOML]]
 deps = ["Dates"]
 uuid = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
-version = "1.0.0"
 
 [[deps.TableTraits]]
 deps = ["IteratorInterfaceExtensions"]
@@ -778,7 +737,6 @@ version = "1.7.0"
 [[deps.Tar]]
 deps = ["ArgTools", "SHA"]
 uuid = "a4e569a6-e804-4fa4-b0f3-eef7a1d5b13e"
-version = "1.10.0"
 
 [[deps.Test]]
 deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
@@ -789,11 +747,6 @@ deps = ["Random", "Test"]
 git-tree-sha1 = "8a75929dcd3c38611db2f8d08546decb514fcadf"
 uuid = "3bb67fe8-82b1-5028-8e26-92a6c54297fa"
 version = "0.9.9"
-
-[[deps.Tricks]]
-git-tree-sha1 = "6bac775f2d42a611cdfcd1fb217ee719630c4175"
-uuid = "410a4b4d-49e4-4fbc-ab6d-cb71b17b3775"
-version = "0.1.6"
 
 [[deps.UUIDs]]
 deps = ["Random", "SHA"]
@@ -816,46 +769,41 @@ version = "1.4.2"
 [[deps.Zlib_jll]]
 deps = ["Libdl"]
 uuid = "83775a58-1f1d-513f-b197-d71354ab007a"
-version = "1.2.12+3"
 
 [[deps.libblastrampoline_jll]]
 deps = ["Artifacts", "Libdl", "OpenBLAS_jll"]
 uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
-version = "5.1.1+0"
 
 [[deps.nghttp2_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "8e850ede-7688-5339-a07c-302acd2aaf8d"
-version = "1.48.0+0"
 
 [[deps.p7zip_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
-version = "17.4.0+0"
 """
 
 # ╔═╡ Cell order:
-# ╟─9193e94c-46df-4534-89f0-6a5699c2725a
-# ╟─54ee7295-27c4-4fcc-8c4f-27407b0c9ddc
-# ╟─4d39b023-b2e7-4569-9dde-9d1aab571c21
 # ╟─ceb4fa2c-3981-466d-b0f8-0468bb264c68
-# ╠═5b5ff634-c6bf-4fe9-b442-8e9821156e75
-# ╠═5ec4c34e-3c37-4e33-ad32-f920f00341cf
+# ╟─5b5ff634-c6bf-4fe9-b442-8e9821156e75
 # ╠═08a9d538-1eba-11ed-1ac4-c1b15c5bb280
 # ╠═ea560410-5c83-4fe2-afd5-03d09af0685d
 # ╠═7463bf07-e164-4580-9a0f-581625994762
 # ╠═72460280-bbfa-492d-8270-e44293266e09
-# ╠═2792710d-b98b-462f-bf03-120d75b7eee6
-# ╠═3c888d25-fc21-4c4f-a2bf-341ed6aaf787
 # ╠═bb47b3f0-b4d7-43d8-945f-ee94e9def8f6
 # ╠═e4af41d5-754a-466f-a26c-cb2a6c4e160c
 # ╠═72bcf653-3ec8-43ad-90a1-e08f7b063b33
 # ╠═af516c3f-6fcf-4db7-a89f-30b1e813863c
 # ╠═83fee348-2ee5-4612-b909-f73a800b9cb6
+# ╠═763c51c1-a1a8-4262-8d40-14799603279a
+# ╠═af189800-ee8e-4042-9a76-89a60e8a6b21
+# ╠═7bc5e477-37b0-435e-9224-152bc562ff04
 # ╠═2de72be6-3ebd-4282-8ab0-d51bbe727aea
 # ╠═9d7518a1-95a5-42fc-b268-87b100c3e96d
 # ╠═c056d31e-6351-4d76-b484-fb8013c20b67
 # ╠═2c8e6f69-f0b9-43a1-b18e-94a4e5de993d
+# ╠═c3af66e7-7e7c-4af9-90cc-8ba7382b2791
+# ╠═bcd7bbc4-90c8-492c-903d-b9559d8a2eb5
 # ╠═b899d763-5636-4142-b93b-30b578144d01
 # ╠═e2c0fbd0-1cdd-4d60-a12c-ba78d90748a1
 # ╠═593279c7-1757-4c08-a19d-a3d269423040
@@ -865,6 +813,7 @@ version = "17.4.0+0"
 # ╠═9ca7013a-3115-4931-b9da-034934e50295
 # ╠═09f4b07a-877c-4357-bbe1-4d46606e8dec
 # ╠═e3cbf4ec-8e7b-44ce-887f-b978524c5cbf
+# ╠═10ed3abf-ae21-453c-ae7b-c27d0f106dae
 # ╠═af40960b-1d79-42ed-a69c-2f24465cfc02
 # ╠═a9d4a058-7ab0-42eb-b879-3787dcedf1c0
 # ╠═a28594c7-c134-4548-9ac1-1049bbe14f4b
