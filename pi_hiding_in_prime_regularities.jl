@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.11
+# v0.19.12
 
 using Markdown
 using InteractiveUtils
@@ -20,6 +20,9 @@ using CairoMakie, Makie.GeometryBasics, LaTeXStrings
 # ╔═╡ 08a9d538-1eba-11ed-1ac4-c1b15c5bb280
 using DataFrames, StatsBase
 
+# ╔═╡ 92ddfca5-0d70-40f4-9745-587c6d682e2c
+using DataStructures
+
 # ╔═╡ a28594c7-c134-4548-9ac1-1049bbe14f4b
 using CSV
 
@@ -33,7 +36,7 @@ TableOfContents()   # from PlutoUI
 
 <article class="learning">
 	<h4>
-		Learning HTML and CSS
+		Pi hiding in prime regularities
 	</h4>
 	<p>
 		The story here is to tie together &pi;, prime numbers, complex numbers and pi and come up with a formula for &pi; using an alternating infinite sum. When you see &pi; see up in math, there’s a circle hiding somewhere, sometimes very sneakily. So the goal here is to discover alternating infinite sum, and find the circle hiding behind it.
@@ -208,8 +211,11 @@ md"""
 ## Dataframe with a range of radius $\sqrt{k}$.
 """
 
+# ╔═╡ 542584b1-5cff-4096-9626-bda7c57df38c
+radius = 100
+
 # ╔═╡ 72460280-bbfa-492d-8270-e44293266e09
-df_pi = DataFrame(sqrt_radius= 1:100) #73 is the magic number
+df_pi = DataFrame(sqrt_radius= 1:radius)
 
 # ╔═╡ bb47b3f0-b4d7-43d8-945f-ee94e9def8f6
 begin
@@ -223,47 +229,44 @@ julia> gcd((3 + 4im),(4 + 3im))
 1 + 0im
 ```
 """
-function gcd(z1::Complex{T}, z2::Complex{V}) where {T<:Integer,V<:Integer}
-    R = promote_type(T, V)
-    a = Complex{R}(z1)
-    b = Complex{R}(z2)
-    if abs(a) < abs(b)
-        a, b = b, a
-    end
-    while b != 0
-        # TODO: Create rem(::Complex{<:Integer}, ::Complex{<:Integer})
-        # TODO: Create div(::Complex{<:Integer}, ::Complex{<:Integer})
-        b̅ = conj(b)
-        # TODO: Handle overflow when calculating a*b̅
-        t = a * b̅
-        # TODO: Create checked_abs2(::Complex{<:Integer})
-        # TODO: Handle overflow when calculating the norm of complex numbers
-        abs2_b = abs2(b)
-        abs2_b < 0 && __throw_gcd_overflow(z1, z2)
-        r = a - b * complex(div(real(t), abs2_b, RoundNearest),
-            div(imag(t), abs2_b, RoundNearest))
-        a = b
-        b = r
-    end
-    ar, ai = reim(a)
-    if ar == 0
-        complex(abs(ai), zero(ar))
-    elseif ai == 0
-        complex(abs(ar), zero(ai))
-    elseif ar > 0 && ai >= 0   # gcd is already in first quadrant
-        a
-    elseif ar < 0 && ai > 0     # In second quadrant
-        complex(ai, -ar)
-    elseif ar < 0 && ai < 0     # In third quadrant
-        -a
-    else                               # In fourth quadrant
-        complex(-ai, ar)
-    end
+	function gcd(z1::Complex{T}, z2::Complex{V}) where {T<:Integer,V<:Integer}
+	    R = promote_type(T, V)
+	    a = Complex{R}(z1)
+	    b = Complex{R}(z2)
+	    if abs(a) < abs(b)
+	        a, b = b, a
+	    end
+	    while b != 0
+	        # TODO: Create rem(::Complex{<:Integer}, ::Complex{<:Integer})
+	        # TODO: Create div(::Complex{<:Integer}, ::Complex{<:Integer})
+	        b̅ = conj(b)
+	        # TODO: Handle overflow when calculating a*b̅
+	        t = a * b̅
+	        # TODO: Create checked_abs2(::Complex{<:Integer})
+	        # TODO: Handle overflow when calculating the norm of complex numbers
+	        abs2_b = abs2(b)
+	        abs2_b < 0 && __throw_gcd_overflow(z1, z2)
+	        r = a - b * complex(div(real(t), abs2_b, RoundNearest),
+	            div(imag(t), abs2_b, RoundNearest))
+	        a = b
+	        b = r
+	    end
+	    ar, ai = reim(a)
+	    if ar == 0
+	        complex(abs(ai), zero(ar))
+	    elseif ai == 0
+	        complex(abs(ar), zero(ai))
+	    elseif ar > 0 && ai >= 0   # gcd is already in first quadrant
+	        a
+	    elseif ar < 0 && ai > 0     # In second quadrant
+	        complex(ai, -ar)
+	    elseif ar < 0 && ai < 0     # In third quadrant
+	        -a
+	    else                               # In fourth quadrant
+	        complex(-ai, ar)
+	    end
+	end
 end
-end
-
-# ╔═╡ f73b34e7-16a2-4cd6-aafd-0ade864ca0c5
-gcd((3+4im),(4+3im))
 
 # ╔═╡ e4af41d5-754a-466f-a26c-cb2a6c4e160c
 dict = Dict()
@@ -285,44 +288,41 @@ julia> gprime(5)
 [2+1im, 2-1im]
 ```
 """
-function gprime(arr)
-    x = Complex[]
-    for p in arr
-        if p == 2
-            push!(x, 1 + 1im)
-            push!(x, 1 - 1im)
-        elseif mod(p, 4) == 3 # p = 3 mod 4, q = p.
-            push!(x, p)
-        elseif mod(p, 4) == 1 # p = 1 mod 4
-            if haskey(dict, p)
-                push!(x, dict[p])
-                push!(x, conj(dict[p]))
-            else
-                for k in 2:(p-1)
-                   # if mod(mod(BigInt(k)^((p - 1) / 2), p), p) == mod(-1, p)
-					y = powermod(k,int((p-1)/2),p)
-					if mod(y, p) == mod(-1, p)
-                        #real = BigInt(k)^((p - 1) / 4)
-						real = powermod(k,int((p - 1) / 4),p)
-                        factor = gcd(Complex(p), (real) + 1im)
-                        if !in(factor, x)
-                            factor_complex_cong = conj(factor)
-                            push!(x, factor)
-                            push!(x, factor_complex_cong)
-                            dict[p] = factor
-                            break
-                        end
-                    end
-                end
-            end
-        end
-    end
-    x
+	function gprime(arr)
+	    x = Complex[]
+	    for p in arr
+	        if p == 2
+	            push!(x, 1 + 1im)
+	            push!(x, 1 - 1im)
+	        elseif mod(p, 4) == 3 # p = 3 mod 4, q = p.
+	            push!(x, p)
+	        elseif mod(p, 4) == 1 # p = 1 mod 4
+	            if haskey(dict, p)
+	                push!(x, dict[p])
+	                push!(x, conj(dict[p]))
+	            else
+	                for k in 2:(p-1)
+	                   # https://rosettacode.org/wiki/Modular_exponentiation#Julia2
+						y = powermod(k,int((p-1)/2),p)
+						if mod(y, p) == mod(-1, p)
+	                        #real = BigInt(k)^((p - 1) / 4)
+							real = powermod(k,int((p - 1) / 4),p)
+	                        factor = gcd(Complex(p), (real) + 1im)
+	                        if !in(factor, x)
+	                            factor_complex_cong = conj(factor)
+	                            push!(x, factor)
+	                            push!(x, factor_complex_cong)
+	                            dict[p] = factor
+	                            break
+	                        end
+	                    end
+	                end
+	            end
+	        end
+	    end
+	    x
+	end
 end
-						end
-
-# ╔═╡ 690cc162-9212-4ee2-9047-af5b21100785
-gprime(5)
 
 # ╔═╡ 83fee348-2ee5-4612-b909-f73a800b9cb6
 begin
@@ -336,13 +336,13 @@ For inputs 1 above a multiple of 4, the output is 1. For inputs 3 above a multip
 julia>  mod_4(7) = 3
 ```
 """ 
-function mod_4(x)
-	if mod1(x,4) == 1
-		1
-	elseif mod1(x, 4) == 3
-		3
+	function mod_4(x)
+		if mod1(x,4) == 1
+			1
+		elseif mod1(x, 4) == 3
+			3
+		end
 	end
-end
 end
 
 # ╔═╡ 763c51c1-a1a8-4262-8d40-14799603279a
@@ -357,44 +357,53 @@ For inputs 1 above a multiple of 4, the output of Χ is 1. For inputs 3 above a 
 julia>  Χ(7) = -1
 ```
 """ 
-function Χ(n)
-		if mod_4(n) == 1
-			1
-		elseif mod_4(n) == 3
-			-1
-		else iseven(n)
-			0
-		end
-end
-
+	function Χ(n)
+			if mod_4(n) == 1
+				1
+			elseif mod_4(n) == 3
+				-1
+			else iseven(n)
+				0
+			end
+	end
 end
 
 # ╔═╡ 46b2299a-3c88-4f5f-9f46-3c773c70b189
-aside(tip(md"[Extra information to consider] (https://rosettacode.org/wiki/Modular_exponentiation#Julia2")) 
+aside(tip(md"The prime number $2$ is special, because it does factor, as $(1+i)(1-i)$.")) 
 
 # ╔═╡ 7bc5e477-37b0-435e-9224-152bc562ff04
-function computeChi(array)
-	D = Dict
-	x = []
-	collection = []
-	prod = 1
-		#@show(array)
-		D = countmap(array)
-		for (key, val) in D
-			s = 0
-			for i in 0:val
-				s += Χ(key^i)
-				#push!(collection,s)
+begin
+	"""
+    computeΧ(array)
+	
+# Examples
+```julia-repl
+julia>  Χ(7) = -1
+```
+""" 
+	function computeΧ(array)
+		D = Dict
+		x = []
+		collection = []
+		prod = 1
+			#@show(array)
+			D = countmap(array)
+			for (key, val) in D
+				s = 0
+				for i in 0:val
+					s += Χ(key^i)
+					#push!(collection,s)
+				end
+				prod = prod * s
 			end
-			prod = prod * s
-		end
-		#print(prod)
-	4*prod
+			#print(prod)
+		4*prod
+	end
 end
 
 # ╔═╡ 2de72be6-3ebd-4282-8ab0-d51bbe727aea
 # https://oodlescoop.com/tutorials/julia/programs/julia-program-to-check-if-a-number-is-prime-number-or-not-;jsessionid=2F142D01C14896A498C338A5BAE587FF
-function prime(num)    
+function isPrime(num)    
     isPrime = true
         for i in 2:convert(Int64, round(num/2, digits = 0))
             if num % i == 0
@@ -406,12 +415,17 @@ function prime(num)
 end
 
 # ╔═╡ 9d7518a1-95a5-42fc-b268-87b100c3e96d
-df_pi.isPrime = prime.(df_pi.sqrt_radius)
+df_pi.isPrime = isPrime.(df_pi.sqrt_radius)
 
 # ╔═╡ c056d31e-6351-4d76-b484-fb8013c20b67
 df_pi.mod4 = mod_4.(df_pi.sqrt_radius)
 
 # ╔═╡ 5c522f78-8ac8-4ee8-860e-80f7b7a2023f
+md"""
+## The goal
+
+The goal here is to count how many lattice points are a given distance away from the origin. Doing this systematically for all distances $\sqrt{N}$ can lead us to a formula for pi. And counting the number of lattice points with a given magnitude, like $\sqrt{25}$, is the same as asking how many Gaussian integers have the property that when you multiply by its complex conjugate, you get 25.
+"""
 
 
 # ╔═╡ 22e0a886-2b99-4453-b1f3-24a889d212e5
@@ -438,50 +452,111 @@ Analogy with primes Factoring works very similarly in Gaussian integers. Some nu
 df_pi.cc = gprime.(df_pi.factors)
 
 # ╔═╡ e2c0fbd0-1cdd-4d60-a12c-ba78d90748a1
-# https://stackoverflow.com/questions/67698311/how-to-get-product-of-all-elements-in-a-row-of-matrix-in-julia
-function cartesian(array)
-	x = Complex[]
-	array_size = size(array)
-	len = length(array)
-	#@show(len)
-	if len == 1
-		push!(x, array[1])
-	elseif(isodd(len))
-		x
-	else
-		# TODO this needs work
-		len2 = Int(len/2)
-		P = reshape(array, 2, len2)	
-		c1 = prod.(eachrow(P))
-		push!(x, c1[1])
-		push!(x, c1[2])
-		Q = reshape(array, len2, 2)
-		c2 = prod.(eachcol(Q))
-		push!(x, c2[1])
-		push!(x, c2[2])
+begin
+	"""
+    cartesian(array) 
+	
+[implementation](https://stackoverflow.com/questions/67698311/how-to-get-product-of-all-elements-in-a-row-of-matrix-in-julia)
+	
+# Examples
+```julia-repl
+julia>  cartesian(array) = -1
+```
+""" 
+	function cartesian(array)
+		x = Complex[]
+		# Need to remove all f you introduce a factor like 3, which doesn’t break down into the product of two conjugate Gaussian primes, it really mucks up the whole system.  So for a number like 3*53, which is 375, there’s actually no lattice point you hit; no Gaussian integer whose product with its own conjugate gives 375. Extend to 32*53 But if you add a second factor of 3, thenyou have an option. You can throw one 3 in the left column, and the other in the right. Since 3 is its own complex conjugate, this keeps things balanced, in the sense that the products of the left and right columns will be complex conjugates of each other. But it doesn’t add any new options
+		A = array
+		#@show A
+		B = filter(y -> mod_4(real(y)) == 3 && imag(y) ==0, array)
+		#@show B
+		C = [(count(==(i), B)) for i in unique(B)]
+		#@show C
+		for i in C
+			if isodd(i)
+				return x
+			end
+		end
+		array_size = size(array)
+		len = length(array)
+		#@show(len)
+		if len == 1
+			push!(x, array[1])
+		elseif(isodd(len))
+			x
+		else
+			# TODO this needs work
+			len2 = Int(len/2)
+			P = reshape(array, 2, len2)	
+			c1 = prod.(eachrow(P))
+			push!(x, c1[1])
+			push!(x, c1[2])
+			Q = reshape(array, len2, 2)
+			c2 = prod.(eachcol(Q))
+			push!(x, c2[1])
+			push!(x, c2[2])
+		end
+		cc = unique(x, dims=1)
+		result = []
+		@show cc
+		if length(cc) != 1
+			for i in length(cc) 
+				@show cc[i]
+				if conj(cc[i]) in cc
+					push!(result, cc[1])
+					push!(result, conj(cc[1]))
+				end
+			end
+		end
+		result
 	end
-	unique(x, dims=1)
 end
+
+# ╔═╡ b3504a2a-6087-440e-a5dc-8b055c4a8f27
+A = [1,2,3,3,5,5,7]
+
+# ╔═╡ e022a8cf-afa6-475d-ab4e-17e43a3fce14
+
+B = [(count(==(i), A)) for i in unique(A)]
+
+# ╔═╡ 463f7bab-b650-4e7f-945d-0cd551c0b4f3
+for i in B
+	if isodd(i)
+		#@show i
+	end
+end
+
+# ╔═╡ 265a7370-95ae-4f7e-ad46-8a7a94373f5b
+C = hcat([[i, count(==(i), A)] for i in unique(A)]...)
+
+# ╔═╡ a565a83c-247a-4367-a4dd-fe9bf86e0e6a
+md"""
+## Find all complex conjugate pairs with product $\sqrt{radius}$.
+
+Next, organize these into two columns, with conjugate pairs sitting right next to each other. Now multiply what’s in each column, and you’ll come out with two Gaussian integers. Because everything in the right is a conjugate to everything in the left, what comes out will be a complex conjugate pair, which multiply to make 25.
+
+The three lattice points we originally found, can each be multiplied by i, -1, or -i, and that accounts for all 12 ways to construct
+a gaussian integer whose product with its own conjugate is 25. 
+"""
 
 # ╔═╡ 593279c7-1757-4c08-a19d-a3d269423040
 df_pi.cartesian = cartesian.(df_pi.cc)
 
+# ╔═╡ ded85f8c-e9bf-4daf-9c86-6611b350d358
+test = Complex[1 + 1im, 1 - 1im]
+
+
+# ╔═╡ 1ca63437-2fa1-4769-878a-44906e4ac4f2
+test[1]
+
 # ╔═╡ 7ec2f302-bd04-4e0e-97be-56e93ecc361c
 df_pi
 
-# ╔═╡ dd397413-3822-4efc-816d-2fe4ad5e1629
-function complex_filter(mod4, prime_factors)::Bool # https://juliadatascience.io/filter_subset
-	interesting_mod4 = 3 == mod4
-	#interesting_prime_factors = 1 == size(prime_factors)
-	interesting_prime_factors = length(prime_factors) == 1
-	interesting_mod4 && interesting_prime_factors
-end
-
-# ╔═╡ cfe930f7-bcd4-44c3-8b69-c25e0cb6ef13
-filter([:mod4, :factors] => !complex_filter, df_pi)
-
 # ╔═╡ 9ca7013a-3115-4931-b9da-034934e50295
 function img_ops(collection)
+	if collection == 0
+		return 0
+	end
 	unique(vcat(collection, collection * (0+1im), collection * (0-1im), collection * (-1+0im)), dims=1)
 end
 
@@ -489,21 +564,35 @@ end
 df_pi.img_ops = img_ops.(df_pi.cartesian)
 
 # ╔═╡ e3cbf4ec-8e7b-44ce-887f-b978524c5cbf
-df_pi.size = size.(df_pi.img_ops)
+df_pi.size = size.(df_pi.img_ops,1)
 
 # ╔═╡ 10ed3abf-ae21-453c-ae7b-c27d0f106dae
-df_pi.chi = computeChi.(df_pi.factors)
+df_pi.chi = computeΧ.(df_pi.factors)
 
 # ╔═╡ af40960b-1d79-42ed-a69c-2f24465cfc02
 df_pi
 
+# ╔═╡ 332a89f4-ee30-4c27-8f77-af55144510fb
+function complex_filter(size, chi)::Bool # https://juliadatascience.io/filter_subset
+	size == chi
+end
+
+# ╔═╡ c35e5ed6-879d-4a29-b6e5-69e0d1ea669b
+df_pi_1 = filter([:size, :chi] => !complex_filter, df_pi)
+
+# ╔═╡ 11603b9f-0da0-43b4-9e22-a93a19b79d9f
+sum(df_pi.size)/radius
+
+# ╔═╡ b79e53f5-89c7-45c5-9ada-cff0f7345bb8
+pi = (sum(df_pi.chi)-1)/radius
+
 # ╔═╡ a9d4a058-7ab0-42eb-b879-3787dcedf1c0
 # https://discourse.julialang.org/t/how-to-convert-all-nothings-in-dataframe-to-missing/54004/10
-df_pi.mod4 = replace(df_pi.mod4, nothing => missing)
+df_pi_1.mod4 = replace(df_pi_1.mod4, nothing => missing)
 
 # ╔═╡ c193d0f7-44d5-44ab-9a0e-1271e23b06f6
 
-CSV.write("prime_pi.csv", df_pi)
+CSV.write("prime_pi.csv", df_pi_1)
 
 
 # ╔═╡ 3858bddb-34c8-476a-9d27-b2997b54271b
@@ -572,6 +661,7 @@ PLUTO_PROJECT_TOML_CONTENTS = """
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 HypertextLiteral = "ac1192a8-f4b3-4bfe-ba22-af5b92cd3ab2"
 LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
@@ -583,6 +673,7 @@ StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 CSV = "~0.10.4"
 CairoMakie = "~0.8.13"
 DataFrames = "~1.3.6"
+DataStructures = "~0.18.13"
 HypertextLiteral = "~0.9.4"
 LaTeXStrings = "~1.3.0"
 Makie = "~0.17.13"
@@ -595,9 +686,9 @@ StatsBase = "~0.33.21"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.8.1"
+julia_version = "1.8.2"
 manifest_format = "2.0"
-project_hash = "b62e5c1372bbc1437cf2a0dee26a2b059282616f"
+project_hash = "e38033c7f380cc865c2dc066bcc61aa15e7c12e7"
 
 [[deps.AbstractFFTs]]
 deps = ["ChainRulesCore", "LinearAlgebra"]
@@ -1716,7 +1807,7 @@ version = "1.9.0"
 [[deps.Tar]]
 deps = ["ArgTools", "SHA"]
 uuid = "a4e569a6-e804-4fa4-b0f3-eef7a1d5b13e"
-version = "1.10.0"
+version = "1.10.1"
 
 [[deps.TensorCore]]
 deps = ["LinearAlgebra"]
@@ -1917,40 +2008,49 @@ version = "3.5.0+0"
 # ╟─5b5ff634-c6bf-4fe9-b442-8e9821156e75
 # ╠═fe677804-cf1f-4413-abe4-684943d68d5f
 # ╠═08a9d538-1eba-11ed-1ac4-c1b15c5bb280
-# ╠═f89f32a4-2d1d-4905-90d9-6746576bf432
+# ╟─f89f32a4-2d1d-4905-90d9-6746576bf432
 # ╟─ea560410-5c83-4fe2-afd5-03d09af0685d
 # ╠═3ed16e6e-bed4-4145-b92c-80795142b8a3
 # ╠═7463bf07-e164-4580-9a0f-581625994762
+# ╠═542584b1-5cff-4096-9626-bda7c57df38c
 # ╠═72460280-bbfa-492d-8270-e44293266e09
 # ╟─bb47b3f0-b4d7-43d8-945f-ee94e9def8f6
-# ╠═f73b34e7-16a2-4cd6-aafd-0ade864ca0c5
 # ╠═e4af41d5-754a-466f-a26c-cb2a6c4e160c
 # ╠═72bcf653-3ec8-43ad-90a1-e08f7b063b33
-# ╠═af516c3f-6fcf-4db7-a89f-30b1e813863c
-# ╠═690cc162-9212-4ee2-9047-af5b21100785
+# ╟─af516c3f-6fcf-4db7-a89f-30b1e813863c
 # ╠═83fee348-2ee5-4612-b909-f73a800b9cb6
-# ╠═763c51c1-a1a8-4262-8d40-14799603279a
-# ╠═46b2299a-3c88-4f5f-9f46-3c773c70b189
-# ╠═7bc5e477-37b0-435e-9224-152bc562ff04
+# ╟─763c51c1-a1a8-4262-8d40-14799603279a
+# ╟─46b2299a-3c88-4f5f-9f46-3c773c70b189
+# ╟─7bc5e477-37b0-435e-9224-152bc562ff04
 # ╠═2de72be6-3ebd-4282-8ab0-d51bbe727aea
 # ╠═9d7518a1-95a5-42fc-b268-87b100c3e96d
 # ╠═c056d31e-6351-4d76-b484-fb8013c20b67
-# ╠═5c522f78-8ac8-4ee8-860e-80f7b7a2023f
-# ╠═22e0a886-2b99-4453-b1f3-24a889d212e5
+# ╟─5c522f78-8ac8-4ee8-860e-80f7b7a2023f
+# ╟─22e0a886-2b99-4453-b1f3-24a889d212e5
 # ╠═2c8e6f69-f0b9-43a1-b18e-94a4e5de993d
 # ╠═bcd7bbc4-90c8-492c-903d-b9559d8a2eb5
-# ╠═005b38ac-ef4c-4514-96d3-a14ea64af4a8
+# ╟─005b38ac-ef4c-4514-96d3-a14ea64af4a8
 # ╠═b899d763-5636-4142-b93b-30b578144d01
+# ╠═92ddfca5-0d70-40f4-9745-587c6d682e2c
 # ╠═e2c0fbd0-1cdd-4d60-a12c-ba78d90748a1
+# ╠═b3504a2a-6087-440e-a5dc-8b055c4a8f27
+# ╠═e022a8cf-afa6-475d-ab4e-17e43a3fce14
+# ╠═463f7bab-b650-4e7f-945d-0cd551c0b4f3
+# ╠═265a7370-95ae-4f7e-ad46-8a7a94373f5b
+# ╟─a565a83c-247a-4367-a4dd-fe9bf86e0e6a
 # ╠═593279c7-1757-4c08-a19d-a3d269423040
+# ╠═ded85f8c-e9bf-4daf-9c86-6611b350d358
+# ╠═1ca63437-2fa1-4769-878a-44906e4ac4f2
 # ╠═7ec2f302-bd04-4e0e-97be-56e93ecc361c
-# ╠═dd397413-3822-4efc-816d-2fe4ad5e1629
-# ╠═cfe930f7-bcd4-44c3-8b69-c25e0cb6ef13
 # ╠═9ca7013a-3115-4931-b9da-034934e50295
 # ╠═09f4b07a-877c-4357-bbe1-4d46606e8dec
 # ╠═e3cbf4ec-8e7b-44ce-887f-b978524c5cbf
 # ╠═10ed3abf-ae21-453c-ae7b-c27d0f106dae
 # ╠═af40960b-1d79-42ed-a69c-2f24465cfc02
+# ╠═332a89f4-ee30-4c27-8f77-af55144510fb
+# ╠═c35e5ed6-879d-4a29-b6e5-69e0d1ea669b
+# ╠═11603b9f-0da0-43b4-9e22-a93a19b79d9f
+# ╠═b79e53f5-89c7-45c5-9ada-cff0f7345bb8
 # ╠═a9d4a058-7ab0-42eb-b879-3787dcedf1c0
 # ╠═a28594c7-c134-4548-9ac1-1049bbe14f4b
 # ╠═c193d0f7-44d5-44ab-9a0e-1271e23b06f6
